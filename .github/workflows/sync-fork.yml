@@ -1,0 +1,37 @@
+name: Sync Fork with Upstream
+
+# 自动把上游 alireza0/s-ui 的变更同步到本 fork。
+# 采用 merge 方式：拉取上游全部更新的同时，保留本 fork 上的本工作流文件，
+# 因此即使分叉也不会失败、也不会把同步工作流自身删除。
+
+on:
+  schedule:
+    - cron: '0 * * * *'      # 每小时整点检查上游是否有更新
+  workflow_dispatch:          # 支持在 Actions 页面手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge upstream changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/alireza0/s-ui.git
+          git fetch upstream main
+          # 已是最新则跳过，避免产生空的 merge 提交
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo "已是最新，无需同步。"
+            exit 0
+          fi
+          git merge upstream/main --no-edit
+          git push origin main
