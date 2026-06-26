@@ -259,6 +259,9 @@ func (s *ClashService) ConvertToClashMeta(outbounds *[]map[string]interface{}, b
 			if insecure, ok := tls["insecure"].(bool); ok && insecure {
 				proxy["skip-cert-verify"] = insecure
 			}
+			if fp := util.CertSha256Hex(util.CertPEMFromTLS(tls)); fp != "" {
+				proxy["fingerprint"] = fp
+			}
 			// ech outbounds
 			if ech, ok := tls["ech"].(map[string]interface{}); ok && ech["enabled"].(bool) {
 				ech_config, _ := ech["config"].([]interface{})
@@ -382,18 +385,9 @@ func (s *ClashService) ConvertToClashMeta(outbounds *[]map[string]interface{}, b
 		proxyTags = append(proxyTags, obMap["tag"].(string))
 	}
 
-	var proxyGroups []map[string]interface{}
-	err := yaml.Unmarshal([]byte(ProxyGroups), &proxyGroups)
-	if err != nil {
-		logger.Error(err.Error())
-	}
-
-	proxyGroups[1]["proxies"] = proxyTags
-	proxyGroups[0]["proxies"] = append([]string{proxyGroups[1]["name"].(string)}, proxyTags...)
-
 	// Merge proxies and proxy groups if exist
 	var output map[string]interface{}
-	err = yaml.Unmarshal([]byte(basicConfig), &output)
+	err := yaml.Unmarshal([]byte(basicConfig), &output)
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -404,9 +398,13 @@ func (s *ClashService) ConvertToClashMeta(outbounds *[]map[string]interface{}, b
 		output["proxies"] = proxies
 	}
 
-	if pg, ok := output["proxy-groups"].([]interface{}); ok {
-		output["proxy-groups"] = append(pg, proxyGroups[0], proxyGroups[1])
-	} else {
+	if pg, ok := output["proxy-groups"].([]interface{}); !ok || len(pg) == 0 {
+		var proxyGroups []map[string]interface{}
+		if err := yaml.Unmarshal([]byte(ProxyGroups), &proxyGroups); err != nil {
+			logger.Error(err.Error())
+		}
+		proxyGroups[1]["proxies"] = proxyTags
+		proxyGroups[0]["proxies"] = append([]string{proxyGroups[1]["name"].(string)}, proxyTags...)
 		output["proxy-groups"] = proxyGroups
 	}
 
