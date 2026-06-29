@@ -6,7 +6,7 @@ name: Sync Fork with Upstream
 
 on:
   schedule:
-    - cron: '0 * * * *'      # 每小时整点检查上游是否有更新
+    - cron: '0 3 * * *'      # 每天 03:00 UTC（北京时间 11:00）同步一次
   workflow_dispatch:          # 支持在 Actions 页面手动触发
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Merge upstream changes
+      - name: Merge upstream changes (keep fork's own workflows)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -33,5 +33,18 @@ jobs:
             echo "已是最新，无需同步。"
             exit 0
           fi
-          git merge upstream/main --no-edit
+          # 合并但先不提交，便于剔除上游对工作流文件的改动
+          git merge --no-commit --no-ff upstream/main || true
+          # 强制保留本 fork 自己的 .github/workflows
+          # （GITHUB_TOKEN 无法推送对工作流文件的改动，否则会被拒绝）
+          rm -rf .github/workflows
+          git checkout HEAD -- .github/workflows
+          git add -A .github/workflows
+          # 若上游仅改动了工作流文件，剔除后可能无内容可提交
+          if git diff --cached --quiet && git diff --quiet; then
+            git merge --abort 2>/dev/null || true
+            echo "上游仅改动工作流文件，已跳过。"
+            exit 0
+          fi
+          git commit --no-edit -m "chore: sync upstream alireza0/s-ui (keep fork workflows)"
           git push origin main
