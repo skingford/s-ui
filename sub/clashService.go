@@ -389,29 +389,12 @@ func (s *ClashService) ConvertToClashMeta(outbounds *[]map[string]interface{}, b
 		output["proxies"] = proxies
 	}
 
-	// Inject default Proxy + Auto unless user already has "Proxy", or
-	// no custom group references it (fully custom config: don't inject).
 	pgSlice, _ := output["proxy-groups"].([]interface{})
-	inject := !hasGroupNamed(pgSlice, "Proxy")
-	if inject && len(pgSlice) > 0 {
-		inject = false
-		for _, item := range pgSlice {
-			if g, ok := item.(map[string]interface{}); ok {
-				if proxies, ok := g["proxies"].([]interface{}); ok {
-					for _, p := range proxies {
-						if name, ok := p.(string); ok && name == "Proxy" {
-							inject = true
-							break
-						}
-					}
-				}
-			}
-			if inject {
-				break
-			}
-		}
-	}
-	if inject {
+
+	noDefGrp, _ := s.SettingService.GetSubClashNoDefGrp()
+	sprtAll, _ := s.SettingService.GetSubClashSprtAll()
+
+	if !noDefGrp {
 		var proxyGroups []map[string]interface{}
 		if err := yaml.Unmarshal([]byte(ProxyGroups), &proxyGroups); err != nil {
 			return "", err
@@ -435,6 +418,28 @@ func (s *ClashService) ConvertToClashMeta(outbounds *[]map[string]interface{}, b
 		}
 	}
 
+	if sprtAll {
+		if list, ok := output["proxy-groups"].([]map[string]interface{}); ok {
+			for _, group := range list {
+				proxies, ok := group["proxies"].([]interface{})
+				if !ok {
+					continue
+				}
+				newProxies := make([]interface{}, 0, len(proxies))
+				for _, p := range proxies {
+					if name, ok := p.(string); ok && strings.EqualFold(name, "all") {
+						for _, tag := range proxyTags {
+							newProxies = append(newProxies, tag)
+						}
+					} else {
+						newProxies = append(newProxies, p)
+					}
+				}
+				group["proxies"] = newProxies
+			}
+		}
+	}
+
 	result, err := yaml.Marshal(output)
 	if err != nil {
 		return "", err
@@ -442,8 +447,6 @@ func (s *ClashService) ConvertToClashMeta(outbounds *[]map[string]interface{}, b
 	return string(result), nil
 }
 
-// hasGroupNamed checks whether a "proxy-groups" interface{} slice contains a group with the given name.
-// Used to avoid injecting duplicate "Proxy" / "Auto" default groups when the user already defined their own.
 func hasGroupNamed(pg interface{}, name string) bool {
 	list, ok := pg.([]interface{})
 	if !ok {
