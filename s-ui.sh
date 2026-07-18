@@ -32,6 +32,26 @@ fi
 
 echo "The OS release is: $release"
 
+# Detect the init system (systemd vs OpenRC used by Alpine)
+if [[ "$release" == "alpine" ]]; then
+    init_system="openrc"
+elif command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+    init_system="systemd"
+elif command -v rc-service >/dev/null 2>&1; then
+    init_system="openrc"
+else
+    init_system="systemd"
+fi
+
+# Service wrappers so the menu works on both systemd and OpenRC (Alpine).
+svc_start()   { if [[ "${init_system}" == "openrc" ]]; then rc-service "$1" start; else systemctl start "$1"; fi; }
+svc_stop()    { if [[ "${init_system}" == "openrc" ]]; then rc-service "$1" stop; else systemctl stop "$1"; fi; }
+svc_restart() { if [[ "${init_system}" == "openrc" ]]; then rc-service "$1" restart; else systemctl restart "$1"; fi; }
+svc_status()  { if [[ "${init_system}" == "openrc" ]]; then rc-service "$1" status; else systemctl status "$1" -l; fi; }
+svc_enable()  { if [[ "${init_system}" == "openrc" ]]; then rc-update add "$1" default; else systemctl enable "$1"; fi; }
+svc_disable() { if [[ "${init_system}" == "openrc" ]]; then rc-update del "$1" default; else systemctl disable "$1"; fi; }
+svc_log()     { if [[ "${init_system}" == "openrc" ]]; then tail -n 200 -f /var/log/s-ui.log; else journalctl -u "$1".service -e --no-pager -f; fi; }
+
 confirm() {
     if [[ $# > 1 ]]; then
         echo && read -p "$1 [Default$2]: " temp
@@ -114,11 +134,17 @@ uninstall() {
         fi
         return 0
     fi
-    systemctl stop s-ui
-    systemctl disable s-ui
-    rm /etc/systemd/system/s-ui.service -f
-    systemctl daemon-reload
-    systemctl reset-failed
+    if [[ "${init_system}" == "openrc" ]]; then
+        rc-service s-ui stop
+        rc-update del s-ui default
+        rm /etc/init.d/s-ui -f
+    else
+        systemctl stop s-ui
+        systemctl disable s-ui
+        rm /etc/systemd/system/s-ui.service -f
+        systemctl daemon-reload
+        systemctl reset-failed
+    fi
     rm /etc/s-ui/ -rf
     rm /usr/local/s-ui/ -rf
 
@@ -204,7 +230,7 @@ start() {
         echo ""
         LOGI -e "${1} is running, No need to start again, If you need to restart, please select restart"
     else
-        systemctl start $1
+        svc_start $1
         sleep 2
         check_status $1
         if [[ $? == 0 ]]; then
@@ -225,7 +251,7 @@ stop() {
         echo ""
         LOGI "${1} stopped, No need to stop again!"
     else
-        systemctl stop $1
+        svc_stop $1
         sleep 2
         check_status
         if [[ $? == 1 ]]; then
@@ -241,7 +267,7 @@ stop() {
 }
 
 restart() {
-    systemctl restart $1
+    svc_restart $1
     sleep 2
     check_status $1
     if [[ $? == 0 ]]; then
@@ -255,14 +281,14 @@ restart() {
 }
 
 status() {
-    systemctl status s-ui -l
+    svc_status s-ui
     if [[ $# == 0 ]]; then
         before_show_menu
     fi
 }
 
 enable() {
-    systemctl enable $1
+    svc_enable $1
     if [[ $? == 0 ]]; then
         LOGI "Set ${1} to boot automatically on startup successfully"
     else
@@ -275,7 +301,7 @@ enable() {
 }
 
 disable() {
-    systemctl disable $1
+    svc_disable $1
     if [[ $? == 0 ]]; then
         LOGI "Autostart ${1} Cancelled successfully"
     else
@@ -288,7 +314,7 @@ disable() {
 }
 
 show_log() {
-    journalctl -u $1.service -e --no-pager -f
+    svc_log $1
     if [[ $# == 1 ]]; then
         before_show_menu
     fi
@@ -307,6 +333,16 @@ update_shell() {
 }
 
 check_status() {
+    if [[ "${init_system}" == "openrc" ]]; then
+        if [[ ! -f "/etc/init.d/$1" ]]; then
+            return 2
+        fi
+        if rc-service "$1" status >/dev/null 2>&1; then
+            return 0
+        else
+            return 1
+        fi
+    fi
     if [[ ! -f "/etc/systemd/system/$1.service" ]]; then
         return 2
     fi
@@ -319,6 +355,13 @@ check_status() {
 }
 
 check_enabled() {
+    if [[ "${init_system}" == "openrc" ]]; then
+        if rc-update show default 2>/dev/null | grep -qw "$1"; then
+            return 0
+        else
+            return 1
+        fi
+    fi
     temp=$(systemctl is-enabled $1)
     if [[ x"${temp}" == x"enabled" ]]; then
         return 0
@@ -451,6 +494,9 @@ enable_bbr() {
     arch | manjaro | parch)
         pacman -Sy --noconfirm ca-certificates
         ;;
+    alpine)
+        apk update && apk add --no-cache ca-certificates
+        ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
         exit 1
@@ -525,6 +571,9 @@ ssl_cert_issue() {
         ;;
     arch | manjaro | parch)
         pacman -Sy --noconfirm socat
+        ;;
+    alpine)
+        apk update && apk add --no-cache socat
         ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"

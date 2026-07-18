@@ -62,6 +62,24 @@
 bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh)
 ```
 
+#### Installer language
+
+The installer is available in the same six languages as the panel: `en` (default), `fa`, `ru`, `vi`, `zhcn`, `zhtw`. Choose one with the `SUI_LANG` environment variable (when unset, your system `$LANG` is used as a hint):
+
+```sh
+SUI_LANG=fa bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh)
+```
+
+### Alpine Linux
+Alpine uses `apk` and OpenRC instead of `apt`/systemd. The install script detects Alpine automatically and sets up an OpenRC service. Since Alpine has no `bash` by default, install it first:
+
+```sh
+apk add bash
+bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh)
+```
+
+Manage the service with OpenRC: `rc-service s-ui start|stop|restart` and `rc-update add s-ui default`.
+
 ### Windows
 1. Download the latest Windows release from [GitHub Releases](https://github.com/alireza0/s-ui/releases/latest)
 2. Extract the ZIP file
@@ -70,10 +88,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.s
 
 ## Install legacy Version
 
-**Step 1:** To install your desired legacy version, add the version to the end of the installation command. e.g., ver `1.0.0`:
+**Step 1:** To install your desired legacy version, add the version to the end of the installation command. e.g., ver `v1.5.0`:
 
 ```sh
-VERSION=1.0.0 && bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/$VERSION/install.sh) $VERSION
+VERSION=v1.5.0 && bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/$VERSION/install.sh) $VERSION
 ```
 
 ## Manual installation
@@ -97,6 +115,7 @@ VERSION=1.0.0 && bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui
 
 ## Uninstall S-UI
 
+### systemd
 ```sh
 sudo -i
 
@@ -104,6 +123,16 @@ systemctl disable s-ui  --now
 
 rm -f /etc/systemd/system/sing-box.service
 systemctl daemon-reload
+
+rm -fr /usr/local/s-ui
+rm /usr/bin/s-ui
+```
+
+### Alpine (OpenRC)
+```sh
+rc-service s-ui stop
+rc-update del s-ui default
+rm -f /etc/init.d/s-ui
 
 rm -fr /usr/local/s-ui
 rm /usr/bin/s-ui
