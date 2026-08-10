@@ -3,6 +3,7 @@ name: Sync Fork with Upstream
 # 自动把上游 alireza0/s-ui 的变更同步到本 fork。
 # 采用 merge 方式：拉取上游全部更新的同时，保留本 fork 上的本工作流文件，
 # 因此即使分叉也不会失败、也不会把同步工作流自身删除。
+# 冲突策略：-X ours，冲突文件以本 fork 为主，非冲突改动正常合入。
 
 on:
   schedule:
@@ -34,7 +35,8 @@ jobs:
             exit 0
           fi
           # 合并但先不提交，便于剔除上游对工作流文件的改动
-          git merge --no-commit --no-ff upstream/main || true
+          # -X ours：内容冲突时以本 fork 为主，避免 go.mod/go.sum 等冲突导致同步失败
+          git merge -X ours --no-commit --no-ff upstream/main || true
           # 强制保留本 fork 自己的 .github/workflows
           # （GITHUB_TOKEN 无法推送对工作流文件的改动，否则会被拒绝）
           rm -rf .github/workflows
