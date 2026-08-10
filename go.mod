@@ -11,9 +11,9 @@ require (
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/refraction-networking/utls v1.8.2
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/sagernet/sing v0.8.12-0.20260726145744-ef2df370afca
-	github.com/sagernet/sing-box v1.13.15
-	github.com/sagernet/sing-quic v0.6.4-0.20260727025224-43cdc830d7cf
+	github.com/sagernet/sing v0.8.12
+	github.com/sagernet/sing-box v1.13.18
+	github.com/sagernet/sing-quic v0.6.4-0.20260803041914-d83826c306d7
 	github.com/sagernet/sing-vmess v0.2.8-0.20250909125414-3aed155119a1
 	github.com/shirou/gopsutil/v4 v4.26.7
 	golang.org/x/crypto v0.54.0
@@ -107,37 +107,37 @@ require (
 	github.com/safchain/ethtool v0.3.0 // indirect
 	github.com/sagernet/bbolt v0.0.0-20231014093535-ea5cb2fe9f0a // indirect
 	github.com/sagernet/cors v1.2.1 // indirect
-	github.com/sagernet/cronet-go v0.0.0-20260712143338-d22f2ea3630e // indirect
-	github.com/sagernet/cronet-go/all v0.0.0-20260712143338-d22f2ea3630e // indirect
-	github.com/sagernet/cronet-go/lib/android_386 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/android_amd64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/android_arm v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/android_arm64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/darwin_amd64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/darwin_arm64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/ios_amd64_simulator v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/ios_arm64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/ios_arm64_simulator v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_386 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_386_musl v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_amd64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_amd64_musl v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_arm v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_arm64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_arm64_musl v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_arm_musl v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_loong64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_loong64_musl v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_mips64le v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_mipsle v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_mipsle_musl v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_riscv64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/linux_riscv64_musl v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/tvos_amd64_simulator v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/tvos_arm64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/tvos_arm64_simulator v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/windows_amd64 v0.0.0-20260712142643-1e5048bd5587 // indirect
-	github.com/sagernet/cronet-go/lib/windows_arm64 v0.0.0-20260712142643-1e5048bd5587 // indirect
+	github.com/sagernet/cronet-go v0.0.0-20260807162344-ec9a39c5ba3b // indirect
+	github.com/sagernet/cronet-go/all v0.0.0-20260807162344-ec9a39c5ba3b // indirect
+	github.com/sagernet/cronet-go/lib/android_386 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/android_amd64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/android_arm v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/android_arm64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/darwin_amd64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/darwin_arm64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/ios_amd64_simulator v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/ios_arm64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/ios_arm64_simulator v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_386 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_386_musl v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_amd64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_amd64_musl v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_arm v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_arm64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_arm64_musl v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_arm_musl v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_loong64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_loong64_musl v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_mips64le v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_mipsle v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_mipsle_musl v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_riscv64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/linux_riscv64_musl v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/tvos_amd64_simulator v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/tvos_arm64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/tvos_arm64_simulator v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/windows_amd64 v0.0.0-20260807161529-8d42107dcdfc // indirect
+	github.com/sagernet/cronet-go/lib/windows_arm64 v0.0.0-20260807161529-8d42107dcdfc // indirect
 	github.com/sagernet/fswatch v0.1.2 // indirect
 	github.com/sagernet/gvisor v0.0.0-20250811.0-sing-box-mod.1 // indirect
 	github.com/sagernet/netlink v0.0.0-20240612041022-b9a21c07ac6a // indirect
