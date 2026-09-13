@@ -23,9 +23,14 @@ type User struct {
 }
 
 type Client struct {
-	Id       uint            `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	Enable   bool            `json:"enable" form:"enable"`
-	Name     string          `json:"name" form:"name"`
+	Id     uint `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Enable bool `json:"enable" form:"enable"`
+	// Name is the join key on every hot path: the stats job and every
+	// subscription fetch resolve a client by it. Uniqueness stays in
+	// ClientService.validateClientName -- a unique index would need existing
+	// duplicates renamed, and a name is the subscription ID, so renaming one
+	// breaks that user's link.
+	Name     string          `json:"name" form:"name" gorm:"index"`
 	Config   json.RawMessage `json:"config,omitempty" form:"config"`
 	Inbounds json.RawMessage `json:"inbounds" form:"inbounds"`
 	Links    json.RawMessage `json:"links,omitempty" form:"links"`
@@ -51,8 +56,10 @@ type Client struct {
 }
 
 type Stats struct {
-	Id        uint64 `json:"id" gorm:"primaryKey;autoIncrement"`
-	DateTime  int64  `json:"dateTime" gorm:"uniqueIndex:idx_stats_bucket,priority:3"`
+	Id uint64 `json:"id" gorm:"primaryKey;autoIncrement"`
+	// date_time sits third in idx_stats_bucket, so that index cannot serve the
+	// retention purge, which filters on date_time alone.
+	DateTime  int64  `json:"dateTime" gorm:"uniqueIndex:idx_stats_bucket,priority:3;index:idx_stats_date_time"`
 	Resource  string `json:"resource" gorm:"uniqueIndex:idx_stats_bucket,priority:1"`
 	Tag       string `json:"tag" gorm:"uniqueIndex:idx_stats_bucket,priority:2"`
 	Direction bool   `json:"direction" gorm:"uniqueIndex:idx_stats_bucket,priority:4"`

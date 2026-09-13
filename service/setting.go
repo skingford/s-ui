@@ -41,6 +41,23 @@ var defaultConfig = `{
   "experimental": {}
 }`
 
+// protectedSettings never travel over the settings endpoint, in either
+// direction. They were already stripped from GetAllSetting, but Save accepted
+// whatever keys it was posted: a client could set its own session `secret`,
+// logging every other session out, or replace the whole sing-box base `config`
+// through a form that is not supposed to touch it.
+//
+// maintenance is here for a different reason -- it has an action of its own
+// that stops or starts the core alongside writing the flag, and letting it
+// through here would leave the two disagreeing.
+var protectedSettings = map[string]bool{
+	"secret":          true,
+	"config":          true,
+	"version":         true,
+	"globalResetLast": true,
+	"maintenance":     true,
+}
+
 var defaultValueMap = map[string]string{
 	"webListen":          "",
 	"webDomain":          "",
@@ -102,19 +119,36 @@ func (s *SettingService) GetAllSetting() (*map[string]string, error) {
 		}
 	}
 
-	// Due to security principles
-	delete(allSetting, "secret")
-	delete(allSetting, "config")
-	delete(allSetting, "version")
-	// Internal bookkeeping, advanced automatically by the reset job
-	delete(allSetting, "globalResetLast")
+	// Bookkeeping rows share this table with the operator's settings: the
+	// migrated* flags the one-off data migrations write, and whatever a later
+	// migration adds. They used to be handed to the settings form, which posts
+	// back every key it was given, and Save rejects a key that is not a
+	// setting -- so a single migration flag made every settings save fail with
+	// "unknown setting". Only keys the operator can actually set leave here.
+	for key := range allSetting {
+		if _, known := defaultValueMap[key]; !known {
+			delete(allSetting, key)
+		}
+	}
+
+	for key := range protectedSettings {
+		delete(allSetting, key)
+	}
 
 	return &allSetting, nil
 }
 
+// ResetSettings restores the operator-facing settings to their defaults, and
+// deliberately keeps the bookkeeping rows: without the version row the database
+// reads as pre-1.2 and every `s-ui migrate` replays the whole legacy chain,
+// and without the migrated* flags the one-off data migrations all run again.
+//
+// These are not settings the operator set, so resetting them is not what the
+// command means in the first place.
 func (s *SettingService) ResetSettings() error {
 	db := database.GetDB()
-	return db.Where("1 = 1").Delete(model.Setting{}).Error
+	return db.Where("key <> ? AND key NOT LIKE ?", "version", "migrated%").
+		Delete(model.Setting{}).Error
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
@@ -418,12 +452,14 @@ func (s *SettingService) Save(tx *gorm.DB, data json.RawMessage) error {
 		return err
 	}
 	for key, obj := range settings {
-		// maintenance has an action of its own, which stops or starts the core
-		// alongside writing the flag. Letting it through here would leave the
-		// two disagreeing: the flag set with the core still serving clients, or
-		// cleared with the core still down.
-		if key == "maintenance" {
+		if protectedSettings[key] {
 			continue
+		}
+		// An unknown key would UPDATE zero rows and report success. Rejecting
+		// it instead surfaces a typo in the caller rather than silently
+		// dropping the value.
+		if _, known := defaultValueMap[key]; !known {
+			return common.NewError("unknown setting: ", key)
 		}
 
 		// Ignore accidental surrounding whitespace while preserving spaces
@@ -459,12 +495,21 @@ func (s *SettingService) Save(tx *gorm.DB, data json.RawMessage) error {
 				return err
 			}
 		}
-		err = tx.Model(model.Setting{}).Where("key = ?", key).Update("value", obj).Error
-		if err != nil {
-			return err
+		// Upsert. A plain UPDATE affects zero rows and reports success when the
+		// row does not exist yet, and rows are only created lazily the first
+		// time GetAllSetting runs -- so on a fresh install the settings form
+		// could report a successful save that wrote nothing.
+		res := tx.Model(model.Setting{}).Where("key = ?", key).Update("value", obj)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			if err := tx.Create(&model.Setting{Key: key, Value: obj}).Error; err != nil {
+				return err
+			}
 		}
 	}
-	return err
+	return nil
 }
 
 func (s *SettingService) GetSubJsonExt() (string, error) {

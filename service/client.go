@@ -97,7 +97,7 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 				return nil, err
 			}
 			// Preserve managed timestamps (immutable createdAt, stats-managed onlineAt)
-			s.preserveTimestamps(tx, &client)
+			s.preserveServerOwnedFields(tx, &client)
 		} else {
 			client.CreatedAt = time.Now().Unix()
 			err = json.Unmarshal(client.Inbounds, &inboundIds)
@@ -167,7 +167,7 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 			if err = setConfigIdentity(client); err != nil {
 				return nil, err
 			}
-			s.preserveTimestamps(tx, client)
+			s.preserveServerOwnedFields(tx, client)
 			if len(changedInboundIds) > 0 {
 				inboundIds = common.UnionUintArray(inboundIds, changedInboundIds)
 			}
@@ -231,14 +231,34 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 	return inboundIds, nil
 }
 
-func (s *ClientService) preserveTimestamps(tx *gorm.DB, client *model.Client) {
+// preserveServerOwnedFields restores the columns the panel maintains itself.
+// The traffic counters matter as much as the timestamps: the stats job writes
+// up/down every ten seconds, so a stale form would roll them back.
+func (s *ClientService) preserveServerOwnedFields(tx *gorm.DB, client *model.Client) {
 	var existing model.Client
-	if err := tx.Model(model.Client{}).Select("created_at", "online_at").
+	if err := tx.Model(model.Client{}).
+		Select("created_at", "online_at", "up", "down", "total_up", "total_down").
 		Where("id = ?", client.Id).First(&existing).Error; err != nil {
 		return
 	}
 	client.CreatedAt = existing.CreatedAt
 	client.OnlineAt = existing.OnlineAt
+	client.Up = existing.Up
+	client.Down = existing.Down
+	client.TotalUp = existing.TotalUp
+	client.TotalDown = existing.TotalDown
+}
+
+// clientNameJSON encodes a client name for the changes log. Built by string
+// concatenation, a name with a quote or backslash produced unreadable JSON --
+// cmd/migration/1_1.go already repairs the previous generation of this bug.
+func clientNameJSON(name string) json.RawMessage {
+	encoded, err := json.Marshal(name)
+	if err != nil {
+		// json.Marshal of a string cannot fail, but never emit broken JSON.
+		return json.RawMessage(`""`)
+	}
+	return json.RawMessage(encoded)
 }
 
 func (s *ClientService) updateLinksWithFixedInbounds(tx *gorm.DB, clients []*model.Client, hostname string) error {
@@ -493,7 +513,7 @@ func (s *ClientService) DepleteClients() ([]uint, error) {
 			Actor:    "DepleteJob",
 			Key:      "clients",
 			Action:   "disable",
-			Obj:      json.RawMessage("\"" + client.Name + "\""),
+			Obj:      clientNameJSON(client.Name),
 		})
 	}
 
@@ -532,7 +552,7 @@ func (s *ClientService) ResetClients(tx *gorm.DB, dt int64) ([]uint, error) {
 			Actor:    "ResetJob",
 			Key:      "clients",
 			Action:   "reset",
-			Obj:      json.RawMessage("\"" + client.Name + "\""),
+			Obj:      clientNameJSON(client.Name),
 		})
 	}
 	allClients = append(allClients, resetClients...)
@@ -551,14 +571,15 @@ func (s *ClientService) ResetClients(tx *gorm.DB, dt int64) ([]uint, error) {
 			Actor:    "ResetJob",
 			Key:      "clients",
 			Action:   "reset",
-			Obj:      json.RawMessage("\"" + client.Name + "\""),
+			Obj:      clientNameJSON(client.Name),
 		})
 	}
 	allClients = append(allClients, resetClients...)
 
-	// Set periodic reset
+	// reset_days > 0 is a backstop: at zero, NextReset becomes dt + 0 == dt, so
+	// the row matches every minute and the volume quota is never reached.
 	err = tx.Model(model.Client{}).
-		Where("delay_start = false AND auto_reset = true AND next_reset < ?", dt).Find(&resetClients).Error
+		Where("delay_start = false AND auto_reset = true AND reset_days > 0 AND next_reset < ?", dt).Find(&resetClients).Error
 	if err != nil {
 		return nil, err
 	}
