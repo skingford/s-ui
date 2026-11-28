@@ -329,15 +329,20 @@ func (s *ClashService) ConvertToClashMeta(outbounds *[]map[string]interface{}, b
 					wsOpts["path"] = path
 				}
 				wsHeaders := make(map[string]interface{})
-				// Only the Host header is carried into Clash
+				// A server may require any of the headers. Clash takes one value
+				// for each, so the first one of a list is used. Host is spelled one
+				// way so the fallback below cannot add a second one.
 				if headers, ok := transport["headers"].(map[string]interface{}); ok {
-					if v, ok := headers["Host"]; ok {
+					for name, v := range headers {
+						if strings.EqualFold(name, "Host") {
+							name = "Host"
+						}
 						if arr, ok := v.([]interface{}); ok {
 							if len(arr) > 0 {
-								wsHeaders["Host"] = arr[0]
+								wsHeaders[name] = arr[0]
 							}
 						} else {
-							wsHeaders["Host"] = v
+							wsHeaders[name] = v
 						}
 					}
 				}
